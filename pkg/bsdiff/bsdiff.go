@@ -254,6 +254,7 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 	return pf.Bytes(), nil
 }
 
+// REVIEW OK (*)
 func search(iii []int, oldbin []byte, newbin []byte, st, en int, pos *int) int {
 	var x, y int
 	oldsize := len(oldbin)
