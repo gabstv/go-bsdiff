@@ -328,6 +328,7 @@ func offtout(x int, buf []byte) {
 	}
 }
 
+// REVIEW OK
 func qsufsort(iii, vvv []int, buf []byte) {
 	buckets := make([]int, 256)
 	var i, h, ln int
@@ -366,31 +367,31 @@ func qsufsort(iii, vvv []int, buf []byte) {
 	}
 	iii[0] = -1
 	// [C] for (h = 1;I[0] != -(oldsize + 1);h += h) {
-	for h = 1; iii[0] != (-(bufzise + 1)); h += h {
+	for h = 1; iii[0] != -(bufzise + 1); h += h {
 		ln = 0
 		// [C] for (i = 0;i < oldsize + 1;) {
 		i = 0
 		for i < bufzise+1 {
 			if iii[i] < 0 {
-				ln -= (iii[i])
-				i -= (iii[i])
+				ln -= iii[i]
+				i -= iii[i]
 			} else {
 				if ln != 0 {
-					iii[i-ln] = (-ln)
+					iii[i-ln] = -ln
 				}
-				ln = (vvv[iii[i]] + 1 - (i))
+				ln = vvv[iii[i]] + 1 - i
 				split(iii, vvv, i, ln, h)
 				i += ln
 				ln = 0
 			}
 		}
 		if ln != 0 {
-			iii[i-ln] = (-ln)
+			iii[i-ln] = -ln
 		}
 	}
 
 	for i = 0; i < bufzise+1; i++ {
-		iii[vvv[i]] = (i)
+		iii[vvv[i]] = i
 	}
 }
 
