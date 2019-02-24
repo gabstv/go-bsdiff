@@ -293,6 +293,7 @@ func matchlen(oldbin []byte, newbin []byte) int {
 	return i
 }
 
+// REVIEW OK
 func offtout(x int, buf []byte) {
 	var y int
 	if x < 0 {
