@@ -14,7 +14,13 @@ const (
 
 // https://github.com/cnSchwarzer/bsdiff-win/blob/master/bsdiff-win/bsdiff.c
 
-func DiffFiles(oldbin io.ReadSeeker, newbin io.ReadSeeker, diffbin io.Writer) error {
+// Bytes takes the old and new byte slices and outputs the diff
+func Bytes(oldbs, newbs []byte) ([]byte, error) {
+	return diffb(oldbs, newbs)
+}
+
+// Stream takes the old and new binaries and outputs a stream of the diff file
+func Stream(oldbin io.ReadSeeker, newbin io.ReadSeeker, diffbin io.Writer) error {
 	oldsize, err := oldbin.Seek(0, io.SeekEnd)
 	if err != nil {
 		return err
@@ -52,7 +58,7 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 	var dblen, eblen int
 
 	// create the patch file
-	pf := new(bytes.Buffer)
+	pf := new(BufWriter)
 
 	// Header is
 	//	0	8	 "BSDIFF40"
@@ -93,6 +99,12 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 	db := make([]byte, newsize+1)
 	eb := make([]byte, newsize+1)
 
+	defer func() {
+		if pfbz2 != nil {
+			pfbz2.Close()
+		}
+	}()
+
 	for scan < newsize {
 		oldscore = 0
 
@@ -100,7 +112,7 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 		scsc = scan
 		for scan < newsize {
 			scan++
-			ln = search(iii, oldbin, oldsize, newbin[scan:], newsize-scan, 0, oldsize, &pos)
+			ln = search(iii, oldbin, newbin[scan:], 0, oldsize, &pos)
 
 			for scsc < scan+ln {
 				scsc++
@@ -211,7 +223,7 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 
 	/* Compute size of compressed ctrl data */
 	if ln = pf.Len(); ln == -1 {
-		return nil, fmt.Errorf("ftello") // TODO: remove
+		return nil, fmt.Errorf("ftello") // TODO: remove?
 	}
 	offtout(ln-32, header[8:])
 
@@ -223,17 +235,34 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 	if _, err = pfbz2.Write(db[:dblen]); err != nil {
 		return nil, err
 	}
-	// TODO: continue line 384
+	// L 384
+	if err = pfbz2.Close(); err != nil {
+		return nil, err
+	}
+	/* Seek to the beginning, write the header, and close the file */
+	if _, err = pf.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
+	if _, err = pf.Write(header); err != nil {
+		return nil, err
+	}
 
-	return nil, fmt.Errorf("not implemented")
+	db = nil
+	eb = nil
+	iii = nil
+	pfbz2 = nil
+
+	return pf.Bytes(), nil
 }
 
-func search(iii []int, oldbin []byte, oldsize int, newbin []byte, newsize, st, en int, pos *int) int {
+func search(iii []int, oldbin []byte, newbin []byte, st, en int, pos *int) int {
 	var x, y int
+	oldsize := len(oldbin)
+	newsize := len(newbin)
 
 	if en-st < 2 {
-		x = matchlen(oldbin[iii[st]:], oldsize-iii[st], newbin, newsize)
-		y = matchlen(oldbin[iii[en]:], oldsize-iii[en], newbin, newsize)
+		x = matchlen(oldbin[iii[st]:], newbin)
+		y = matchlen(oldbin[iii[en]:], newbin)
 
 		if x > y {
 			*pos = iii[st]
@@ -245,19 +274,22 @@ func search(iii []int, oldbin []byte, oldsize int, newbin []byte, newsize, st, e
 
 	x = st + (en-st)/2
 	cmpln := min(oldsize-iii[x], newsize)
+	// xxx = oldbin[iii[x]:]
 	if bytes.Compare(oldbin[iii[x]:iii[x]+cmpln], newbin[:cmpln]) < 0 {
-		return search(iii, oldbin, oldsize, newbin, newsize, x, en, pos)
+		return search(iii, oldbin, newbin, x, en, pos)
 	}
-	return search(iii, oldbin, oldsize, newbin, newsize, st, x, pos)
+	return search(iii, oldbin, newbin, st, x, pos)
 }
 
-func matchlen(oldbin []byte, oldsize int, newbin []byte, newsize int) int {
+func matchlen(oldbin []byte, newbin []byte) int {
 	var i int
+	oldsize := len(oldbin)
+	newsize := len(newbin)
 	for (i < oldsize) && (i < newsize) {
-		i++
 		if oldbin[i] != newbin[i] {
 			break
 		}
+		i++
 	}
 	return i
 }
