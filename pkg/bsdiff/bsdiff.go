@@ -66,6 +66,7 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 	//		??	??	Bzip2ed extra block
 
 	header := make([]byte, 32)
+	buf := make([]byte, 8)
 
 	copy(header, []byte("BSDIFF40"))
 	offtout(0, header[8:])
@@ -85,6 +86,12 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 
 	var oldscore, scsc int
 	var pos int
+
+	var s, Sf, lenf, Sb, lenb int
+	var overlap, Ss, lens int
+
+	db := make([]byte, newsize+1)
+	eb := make([]byte, newsize+1)
 
 	for scan < newsize {
 		oldscore = 0
@@ -112,8 +119,111 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 			}
 		}
 
-		// TODO: continue at line 309
+		// L 309:
+		if ln != oldscore || scan == newsize {
+			s = 0
+			Sf = 0
+			lenf = 0
+			i := 0
+			for lastscan+i < scan && lastpos+i < oldsize {
+				if oldbin[lastpos+i] == newbin[lastscan+i] {
+					s++
+				}
+				i++
+				if s*2-i > Sf*2-lenf {
+					Sf = s
+					lenf = i
+				}
+			}
+
+			lenb = 0
+			if scan < newsize {
+				s = 0
+				Sb = 0
+				for i = 1; scan >= lastscan+i && pos >= i; i++ {
+					if oldbin[pos-i] == newbin[scan-i] {
+						s++
+					}
+					if s*2-i > Sb*2-lenb {
+						Sb = s
+						lenb = i
+					}
+				}
+			}
+			// L 326:
+			if lastscan+lenf > scan-lenb {
+				overlap = (lastscan + lenf) - (scan - lenb)
+				s = 0
+				Ss = 0
+				lens = 0
+				for i = 0; i < overlap; i++ {
+					if newbin[lastscan+lenf-overlap+i] == oldbin[lastpos+lenf-overlap+i] {
+						s++
+					}
+					// L 332:
+					if newbin[scan-lenb+i] == oldbin[pos-lenb+i] {
+						s--
+					}
+					if s > Ss {
+						Ss = s
+						lens = i + 1
+					}
+				}
+
+				lenf += lens - overlap
+				lenb -= lens
+			}
+
+			// L 341:
+			for i = 0; i < lenf; i++ {
+				db[dblen+i] = newbin[lastscan+i] - oldbin[lastpos+i]
+			}
+			for i = 0; i < (scan-lenb)-(lastscan+lenf); i++ {
+				eb[eblen+i] = newbin[lastscan+lenf+i]
+			}
+
+			dblen += lenf
+			eblen += (scan - lenb) - (lastscan + lenf)
+
+			offtout(lenf, buf)
+			if _, err := pfbz2.Write(buf); err != nil {
+				return nil, err
+			}
+
+			offtout((scan-lenb)-(lastscan+lenf), buf)
+			if _, err := pfbz2.Write(buf); err != nil {
+				return nil, err
+			}
+			// L 359
+			offtout((pos-lenb)-(lastpos+lenf), buf)
+			if _, err := pfbz2.Write(buf); err != nil {
+				return nil, err
+			}
+			// L 364
+			lastscan = scan - lenb
+			lastpos = pos - lenb
+			lastoffset = pos - scan
+		}
 	}
+	if err = pfbz2.Close(); err != nil {
+		return nil, err
+	}
+
+	/* Compute size of compressed ctrl data */
+	if ln = pf.Len(); ln == -1 {
+		return nil, fmt.Errorf("ftello") // TODO: remove
+	}
+	offtout(ln-32, header[8:])
+
+	/* Write compressed diff data */
+	pfbz2, err = bzip2.NewWriter(pf, nil)
+	if err != nil {
+		return nil, err
+	}
+	if _, err = pfbz2.Write(db[:dblen]); err != nil {
+		return nil, err
+	}
+	// TODO: continue line 384
 
 	return nil, fmt.Errorf("not implemented")
 }
