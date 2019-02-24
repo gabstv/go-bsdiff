@@ -47,6 +47,7 @@ func Stream(oldbin io.ReadSeeker, newbin io.ReadSeeker, diffbin io.Writer) error
 	return putWriter(diffbin, diffbytes)
 }
 
+// REVIEW OK
 func diffb(oldbin, newbin []byte) ([]byte, error) {
 	iii := make([]int, len(oldbin)+1)
 	vvv := make([]int, len(oldbin)+1)
@@ -71,13 +72,16 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 	//		??	??	Bzip2ed diff block
 	//		??	??	Bzip2ed extra block
 
+	newsize := len(newbin)
+	oldsize := len(oldbin)
+
 	header := make([]byte, 32)
 	buf := make([]byte, 8)
 
 	copy(header, []byte("BSDIFF40"))
 	offtout(0, header[8:])
 	offtout(0, header[16:])
-	offtout(len(newbin), header[24:])
+	offtout(newsize, header[24:])
 	if _, err := pf.Write(header); err != nil {
 		return nil, err
 	}
@@ -87,8 +91,6 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 		return nil, err
 	}
 	var scan, ln, lastscan, lastpos, lastoffset int
-	newsize := len(newbin)
-	oldsize := len(oldbin)
 
 	var oldscore, scsc int
 	var pos int
@@ -114,10 +116,10 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 			ln = search(iii, oldbin, newbin[scan:], 0, oldsize, &pos)
 
 			for scsc < scan+ln {
-				scsc++
 				if scsc+lastoffset < oldsize && oldbin[scsc+lastoffset] == newbin[scsc] {
 					oldscore++
 				}
+				scsc++
 			}
 			if ln == oldscore && ln != 0 {
 				break
@@ -235,6 +237,21 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 		return nil, err
 	}
 	// L 384
+	if err = pfbz2.Close(); err != nil {
+		return nil, err
+	}
+	/* Compute size of compressed diff data */
+	newsize = pf.Len()
+	offtout(newsize-ln, header[16:])
+	/* Write compressed extra data */
+	// L 394
+	pfbz2, err = bzip2.NewWriter(pf, nil)
+	if err != nil {
+		return nil, err
+	}
+	if _, err = pfbz2.Write(eb[:eblen]); err != nil {
+		return nil, err
+	}
 	if err = pfbz2.Close(); err != nil {
 		return nil, err
 	}
