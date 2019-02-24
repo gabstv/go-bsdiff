@@ -403,7 +403,7 @@ func split(iii, vvv []int, start, ln, h int) {
 	if ln < 16 {
 		for k = start; k < start+ln; k += j {
 			j = 1
-			x = vvv[iii[k] + h)]
+			x = vvv[iii[k]+h]
 			for i = 1; k+i < start+ln; i++ {
 				// L 54:
 				if vvv[iii[k+i]+h] < x {
