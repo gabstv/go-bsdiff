@@ -84,6 +84,7 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 	oldsize := len(oldbin)
 
 	var oldscore, scsc int
+	var pos int
 
 	for scan < newsize {
 		oldscore = 0
@@ -92,11 +93,63 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 		scsc = scan
 		for scan < newsize {
 			scan++
-			//ln = search(iii, oldbin, oldsize, newbin[scan:], newsize - scan, 0, oldsize, &pos)
+			ln = search(iii, oldbin, oldsize, newbin[scan:], newsize-scan, 0, oldsize, &pos)
+
+			for scsc < scan+ln {
+				scsc++
+				if scsc+lastoffset < oldsize && oldbin[scsc+lastoffset] == newbin[scsc] {
+					oldscore++
+				}
+			}
+			if ln == oldscore && ln != 0 {
+				break
+			}
+			if ln > oldscore+8 {
+				break
+			}
+			if scan+lastoffset < oldsize && oldbin[scan+lastoffset] == newbin[scan] {
+				oldscore--
+			}
 		}
+
+		// TODO: continue at line 309
 	}
 
 	return nil, fmt.Errorf("not implemented")
+}
+
+func search(iii []int, oldbin []byte, oldsize int, newbin []byte, newsize, st, en int, pos *int) int {
+	var x, y int
+
+	if en-st < 2 {
+		x = matchlen(oldbin[iii[st]:], oldsize-iii[st], newbin, newsize)
+		y = matchlen(oldbin[iii[en]:], oldsize-iii[en], newbin, newsize)
+
+		if x > y {
+			*pos = iii[st]
+			return x
+		}
+		*pos = iii[en]
+		return y
+	}
+
+	x = st + (en-st)/2
+	cmpln := min(oldsize-iii[x], newsize)
+	if bytes.Compare(oldbin[iii[x]:iii[x]+cmpln], newbin[:cmpln]) < 0 {
+		return search(iii, oldbin, oldsize, newbin, newsize, x, en, pos)
+	}
+	return search(iii, oldbin, oldsize, newbin, newsize, st, x, pos)
+}
+
+func matchlen(oldbin []byte, oldsize int, newbin []byte, newsize int) int {
+	var i int
+	for (i < oldsize) && (i < newsize) {
+		i++
+		if oldbin[i] != newbin[i] {
+			break
+		}
+	}
+	return i
 }
 
 func offtout(x int, buf []byte) {
