@@ -105,13 +105,12 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 		}
 	}()
 
+	// L 289: while (scan < newsize) {
 	for scan < newsize {
 		oldscore = 0
 
-		scan += ln
-		scsc = scan
-		for scan < newsize {
-			scan++
+		scsc += ln
+		for scan = scsc; scan < newsize; scan++ {
 			ln = search(iii, oldbin, newbin[scan:], 0, oldsize, &pos)
 
 			for scsc < scan+ln {
