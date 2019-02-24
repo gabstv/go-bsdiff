@@ -395,6 +395,7 @@ func qsufsort(iii, vvv []int, buf []byte) {
 	}
 }
 
+// REVIEW OK
 func split(iii, vvv []int, start, ln, h int) {
 	var i, j, k, x int
 	//var tmp int32
@@ -402,31 +403,29 @@ func split(iii, vvv []int, start, ln, h int) {
 	if ln < 16 {
 		for k = start; k < start+ln; k += j {
 			j = 1
-			x = (vvv[(iii[k] + (h))])
+			x = vvv[iii[k] + h)]
 			for i = 1; k+i < start+ln; i++ {
-				if vvv[(iii[k+i]+(h))] < (x) {
-					x = int(vvv[int(iii[k+i]+(h))])
+				// L 54:
+				if vvv[iii[k+i]+h] < x {
+					x = vvv[iii[k+i]+h]
 					j = 0
 				}
-				if vvv[int(iii[k+i]+(h))] == x {
-					//tmp = iii[k+j]
-					//iii[k+j]=iii[k+i]
-					//iii[k+i]=tmp
+				if vvv[iii[k+i]+h] == x {
 					iii[k+j], iii[k+i] = iii[k+i], iii[k+j]
 					j++
 				}
-				for i = 0; i < j; i++ {
-					vvv[iii[k+i]] = k + j - 1
-				}
-				if j == 1 {
-					iii[k] = -1
-				}
+			}
+			for i = 0; i < j; i++ {
+				vvv[iii[k+i]] = k + j - 1
+			}
+			if j == 1 {
+				iii[k] = -1
 			}
 		}
 		return
 	}
 
-	x = vvv[iii[start+ln/2]+h]
+	x = vvv[iii[start+(ln/2)]+h]
 	var jj, kk int
 	for i = start; i < start+ln; i++ {
 		if vvv[iii[i]+h] < x {
@@ -439,6 +438,7 @@ func split(iii, vvv []int, start, ln, h int) {
 	kk += jj
 
 	i = start
+	j = 0
 	k = 0
 	for i < jj {
 		if vvv[iii[i]+h] < x {
