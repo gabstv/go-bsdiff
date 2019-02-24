@@ -280,6 +280,7 @@ func search(iii []int, oldbin []byte, newbin []byte, st, en int, pos *int) int {
 	return search(iii, oldbin, newbin, st, x, pos)
 }
 
+// REVIEW OK
 func matchlen(oldbin []byte, newbin []byte) int {
 	var i int
 	oldsize := len(oldbin)
