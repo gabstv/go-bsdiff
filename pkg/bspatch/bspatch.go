@@ -1,29 +1,28 @@
-/*-
- * Copyright 2003-2005 Colin Percival
- * All rights reserved
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted providing that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- */
+// * Copyright 2003-2005 Colin Percival
+// * All rights reserved
+// *
+// * Redistribution and use in source and binary forms, with or without
+// * modification, are permitted providing that the following conditions
+// * are met:
+// * 1. Redistributions of source code must retain the above copyright
+// *    notice, this list of conditions and the following disclaimer.
+// * 2. Redistributions in binary form must reproduce the above copyright
+// *    notice, this list of conditions and the following disclaimer in the
+// *    documentation and/or other materials provided with the distribution.
+// *
+// * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+// * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+// * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+// * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+// * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+// * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+// * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// * POSSIBILITY OF SUCH DAMAGE.
 
+// Package bspatch is a binary diff program using suffix sorting.
 package bspatch
 
 import (
@@ -89,34 +88,31 @@ func patchb(oldfile, patch []byte) ([]byte, error) {
 
 	f := bytes.NewReader(patch)
 
-	/*
-		File format:
-			0	8	"BSDIFF40"
-			8	8	X
-			16	8	Y
-			24	8	sizeof(newfile)
-			32	X	bzip2(control block)
-			32+X	Y	bzip2(diff block)
-			32+X+Y	???	bzip2(extra block)
-		with control block a set of triples (x,y,z) meaning "add x bytes
-		from oldfile to x bytes from the diff block; copy y bytes from the
-		extra block; seek forwards in oldfile by z bytes".
-	*/
+	//	File format:
+	//		0	8	"BSDIFF40"
+	//		8	8	X
+	//		16	8	Y
+	//		24	8	sizeof(newfile)
+	//		32	X	bzip2(control block)
+	//		32+X	Y	bzip2(diff block)
+	//		32+X+Y	???	bzip2(extra block)
+	//	with control block a set of triples (x,y,z) meaning "add x bytes
+	//	from oldfile to x bytes from the diff block; copy y bytes from the
+	//	extra block; seek forwards in oldfile by z bytes".
 
-	/* Read header */
+	// Read header
 	if n, err := f.Read(header); err != nil || n < 32 {
 		if err != nil {
 			return nil, fmt.Errorf("corrupt patch %v", err.Error())
 		}
 		return nil, fmt.Errorf("corrupt patch")
 	}
-	/* Check for appropriate magic */
+	// Check for appropriate magic
 	if bytes.Compare(header[:8], []byte("BSDIFF40")) != 0 {
 		return nil, fmt.Errorf("corrupt patch (header)")
 	}
 
-	/* Read lengths from header */
-	// L 109
+	// Read lengths from header
 	bzctrllen := offtin(header[8:])
 	bzdatalen := offtin(header[16:])
 	newsize = offtin(header[24:])
@@ -125,7 +121,7 @@ func patchb(oldfile, patch []byte) ([]byte, error) {
 		return nil, fmt.Errorf("corrupt patch")
 	}
 
-	/* Close patch file and re-open it via libbzip2 at the right places */
+	// Close patch file and re-open it via libbzip2 at the right places
 	f = nil
 	cpf := bytes.NewReader(patch)
 	if _, err := cpf.Seek(32, io.SeekStart); err != nil {
@@ -152,14 +148,13 @@ func patchb(oldfile, patch []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	pnew := make([]byte, newsize) // newsize+1
+	pnew := make([]byte, newsize)
 
 	oldpos := 0
 	newpos := 0
 
-	// L 154:
 	for newpos < newsize {
-		/* Read control data */
+		// Read control data
 		for i = 0; i <= 2; i++ {
 			lenread, err = cpfbz2.Read(buf)
 			if lenread != 8 || (err != nil && err != io.EOF) {
@@ -171,12 +166,12 @@ func patchb(oldfile, patch []byte) ([]byte, error) {
 			}
 			ctrl[i] = offtin(buf)
 		}
-		/* Sanity-check */
+		// Sanity-check
 		if newpos+ctrl[0] > newsize {
 			return nil, fmt.Errorf("corrupt patch (sanity check)")
 		}
 
-		/* Read diff string */
+		// Read diff string
 		lenread, err = dpfbz2.Read(pnew[newpos : newpos+ctrl[0]])
 		if lenread < ctrl[0] || (err != nil && err != io.EOF) {
 			e0 := ""
@@ -185,7 +180,7 @@ func patchb(oldfile, patch []byte) ([]byte, error) {
 			}
 			return nil, fmt.Errorf("corrupt patch or bzstream ended (2): %s", e0)
 		}
-		/* Add pold data to diff string */
+		// Add pold data to diff string
 		for i = 0; i < ctrl[0]; i++ {
 			if oldpos+i >= 0 && oldpos+i < oldsize {
 				pnew[newpos+i] += oldfile[oldpos+i]
