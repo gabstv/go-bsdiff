@@ -35,8 +35,6 @@ import (
 	"github.com/gabstv/go-bsdiff/pkg/util"
 )
 
-// https://github.com/cnSchwarzer/bsdiff-win/blob/master/bsdiff-win/bsdiff.c
-
 // Bytes takes the old and new byte slices and outputs the diff
 func Bytes(oldbs, newbs []byte) ([]byte, error) {
 	return diffb(oldbs, newbs)
@@ -94,7 +92,7 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 	var dblen, eblen int
 
 	// create the patch file
-	pf := new(BufWriter)
+	pf := new(util.BufWriter)
 
 	// Header is
 	//	0	8	 "BSDIFF40"
