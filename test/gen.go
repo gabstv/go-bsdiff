@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 
 	"github.com/gabstv/go-bsdiff/pkg/bsdiff"
+	"github.com/gabstv/go-bsdiff/pkg/bspatch"
 )
 
 func main() {
@@ -23,8 +25,29 @@ func main() {
 	f.Close()
 	hhh, _ := ioutil.ReadFile("godiff.bin")
 	fmt.Println(hhh)
+	var ddd []byte
 	if _, err := os.Stat("diff.bin"); err == nil {
-		hhh, _ = ioutil.ReadFile("diff.bin")
-		fmt.Println(hhh)
+		ddd, _ = ioutil.ReadFile("diff.bin")
+		fmt.Println(ddd)
+	}
+	newbs2, err := bspatch.Bytes(oldbs, hhh)
+	if err != nil {
+		fmt.Println("go patch error:", err.Error())
+		return
+	}
+	newbs3, err := bspatch.Bytes(oldbs, ddd)
+	if err != nil {
+		fmt.Println("'brew' patch error:", err.Error())
+		return
+	}
+	if bytes.Equal(newbs, newbs2) {
+		fmt.Println("go diff success!")
+	} else {
+		fmt.Println("go diff FAILED!")
+	}
+	if bytes.Equal(newbs, newbs3) {
+		fmt.Println("'brew' diff success!")
+	} else {
+		fmt.Println("'brew' diff FAILED!")
 	}
 }
