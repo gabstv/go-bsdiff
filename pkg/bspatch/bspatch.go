@@ -8,6 +8,11 @@ import (
 	"github.com/dsnet/compress/bzip2"
 )
 
+// Bytes applies a patch with the oldfile to create the newfile
+func Bytes(oldfile, patch []byte) (newfile []byte, err error) {
+	return patchb(oldfile, patch)
+}
+
 func patchb(oldfile, patch []byte) ([]byte, error) {
 	oldsize := len(oldfile)
 	var newsize int
