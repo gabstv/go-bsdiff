@@ -77,16 +77,12 @@ func File(oldfile, newfile, patchfile string) error {
 	return nil
 }
 
-// REVIEW OK
 func diffb(oldbin, newbin []byte) ([]byte, error) {
 	bziprule := &bzip2.WriterConfig{
 		Level: bzip2.BestCompression,
 	}
 	iii := make([]int, len(oldbin)+1)
-	vvv := make([]int, len(oldbin)+1)
-	qsufsort(iii, vvv, oldbin)
-	// [C] free(V)
-	vvv = nil
+	qsufsort(iii, oldbin)
 
 	//var db
 	var dblen, eblen int
@@ -99,11 +95,11 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 	//	8	8	length of bzip2ed ctrl block
 	//	16	8	length of bzip2ed diff block
 	//	24	8	length of pnew file */
-	//	/* File is
-	//		0	32	Header
-	//		32	??	Bzip2ed ctrl block
-	//		??	??	Bzip2ed diff block
-	//		??	??	Bzip2ed extra block
+	// File is
+	//  0	32	Header
+	//  32	??	Bzip2ed ctrl block
+	//  ??	??	Bzip2ed diff block
+	//  ??	??	Bzip2ed extra block
 
 	newsize := len(newbin)
 	oldsize := len(oldbin)
@@ -140,7 +136,6 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 		}
 	}()
 
-	// L 289: while (scan < newsize) {
 	for scan < newsize {
 		oldscore = 0
 
@@ -165,7 +160,6 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 			}
 		}
 
-		// L 309:
 		if ln != oldscore || scan == newsize {
 			s = 0
 			Sf = 0
@@ -196,7 +190,7 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 					}
 				}
 			}
-			// L 326:
+
 			if lastscan+lenf > scan-lenb {
 				overlap = (lastscan + lenf) - (scan - lenb)
 				s = 0
@@ -206,7 +200,7 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 					if newbin[lastscan+lenf-overlap+i] == oldbin[lastpos+lenf-overlap+i] {
 						s++
 					}
-					// L 332:
+
 					if newbin[scan-lenb+i] == oldbin[pos-lenb+i] {
 						s--
 					}
@@ -220,7 +214,6 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 				lenb -= lens
 			}
 
-			// L 341:
 			for i = 0; i < lenf; i++ {
 				db[dblen+i] = newbin[lastscan+i] - oldbin[lastpos+i]
 			}
@@ -240,12 +233,12 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 			if _, err := pfbz2.Write(buf); err != nil {
 				return nil, err
 			}
-			// L 359
+
 			offtout((pos-lenb)-(lastpos+lenf), buf)
 			if _, err := pfbz2.Write(buf); err != nil {
 				return nil, err
 			}
-			// L 364
+
 			lastscan = scan - lenb
 			lastpos = pos - lenb
 			lastoffset = pos - scan
@@ -255,13 +248,10 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	/* Compute size of compressed ctrl data */
-	if ln = pf.Len(); ln == -1 {
-		return nil, fmt.Errorf("ftello") // TODO: remove?
-	}
+	// Compute size of compressed ctrl data
 	offtout(ln-32, header[8:])
 
-	/* Write compressed diff data */
+	// Write compressed diff data
 	pfbz2, err = bzip2.NewWriter(pf, bziprule)
 	if err != nil {
 		return nil, err
@@ -269,15 +259,14 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 	if _, err = pfbz2.Write(db[:dblen]); err != nil {
 		return nil, err
 	}
-	// L 384
+
 	if err = pfbz2.Close(); err != nil {
 		return nil, err
 	}
-	/* Compute size of compressed diff data */
+	// Compute size of compressed diff data
 	newsize = pf.Len()
 	offtout(newsize-ln, header[16:])
-	/* Write compressed extra data */
-	// L 394
+	// Write compressed extra data
 	pfbz2, err = bzip2.NewWriter(pf, bziprule)
 	if err != nil {
 		return nil, err
@@ -288,7 +277,7 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 	if err = pfbz2.Close(); err != nil {
 		return nil, err
 	}
-	/* Seek to the beginning, write the header, and close the file */
+	// Seek to the beginning, write the header, and close the file
 	if _, err = pf.Seek(0, io.SeekStart); err != nil {
 		return nil, err
 	}
@@ -304,7 +293,6 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 	return pf.Bytes(), nil
 }
 
-// REVIEW OK (*)
 func search(iii []int, oldbin []byte, newbin []byte, st, en int, pos *int) int {
 	var x, y int
 	oldsize := len(oldbin)
@@ -324,14 +312,12 @@ func search(iii []int, oldbin []byte, newbin []byte, st, en int, pos *int) int {
 
 	x = st + (en-st)/2
 	cmpln := util.Min(oldsize-iii[x], newsize)
-	// xxx = oldbin[iii[x]:]
 	if bytes.Compare(oldbin[iii[x]:iii[x]+cmpln], newbin[:cmpln]) < 0 {
 		return search(iii, oldbin, newbin, x, en, pos)
 	}
 	return search(iii, oldbin, newbin, st, x, pos)
 }
 
-// REVIEW OK
 func matchlen(oldbin []byte, newbin []byte) int {
 	var i int
 	oldsize := len(oldbin)
@@ -345,7 +331,6 @@ func matchlen(oldbin []byte, newbin []byte) int {
 	return i
 }
 
-// REVIEW OK
 func offtout(x int, buf []byte) {
 	var y int
 	if x < 0 {
@@ -381,48 +366,46 @@ func offtout(x int, buf []byte) {
 	}
 }
 
-// REVIEW OK
-func qsufsort(iii, vvv []int, buf []byte) {
+func qsufsort(iii []int, buf []byte) {
 	buckets := make([]int, 256)
+	vvv := make([]int, len(iii))
 	var i, h, ln int
 	bufzise := len(buf)
-	// [C] for (i = 0;i < 256;i++) buckets[i] = 0;
-	// [C] for (i = 0;i < oldsize;i++) buckets[pold[i]]++;
+
 	for i = 0; i < bufzise; i++ {
 		buckets[buf[i]]++
 	}
-	// [C] for (i = 1;i < 256;i++) buckets[i] += buckets[i - 1];
+
 	for i = 1; i < 256; i++ {
 		buckets[i] += buckets[i-1]
 	}
-	// [C] for (i = 255;i > 0;i--) buckets[i] = buckets[i - 1];
+
 	for i = 255; i > 0; i-- {
 		buckets[i] = buckets[i-1]
 	}
 	buckets[0] = 0
 
-	// [C] for (i = 0;i < oldsize;i++) I[++buckets[pold[i]]] = i;
 	for i = 0; i < bufzise; i++ {
 		buckets[buf[i]]++
 		iii[buckets[buf[i]]] = i
 	}
 	iii[0] = bufzise
-	// [C] for (i = 0;i < oldsize;i++) V[i] = buckets[pold[i]];
+
 	for i = 0; i < bufzise; i++ {
 		vvv[i] = buckets[buf[i]]
 	}
 	vvv[bufzise] = 0
-	// [C] for (i = 1;i < 256;i++) if (buckets[i] == buckets[i - 1] + 1) I[buckets[i]] = -1;
+
 	for i = 1; i < 256; i++ {
 		if buckets[i] == buckets[i-1]+1 {
 			iii[buckets[i]] = -1
 		}
 	}
 	iii[0] = -1
-	// [C] for (h = 1;I[0] != -(oldsize + 1);h += h) {
+
 	for h = 1; iii[0] != -(bufzise + 1); h += h {
 		ln = 0
-		// [C] for (i = 0;i < oldsize + 1;) {
+
 		i = 0
 		for i < bufzise+1 {
 			if iii[i] < 0 {
@@ -448,17 +431,14 @@ func qsufsort(iii, vvv []int, buf []byte) {
 	}
 }
 
-// REVIEW OK
 func split(iii, vvv []int, start, ln, h int) {
 	var i, j, k, x int
-	//var tmp int32
 
 	if ln < 16 {
 		for k = start; k < start+ln; k += j {
 			j = 1
 			x = vvv[iii[k]+h]
 			for i = 1; k+i < start+ln; i++ {
-				// L 54:
 				if vvv[iii[k+i]+h] < x {
 					x = vvv[iii[k+i]+h]
 					j = 0
