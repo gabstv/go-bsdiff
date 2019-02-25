@@ -52,7 +52,7 @@ func patchb(oldfile, patch []byte) ([]byte, error) {
 
 	/* Read lengths from header */
 	// L 109
-	bzctrllen := offtin(buf[8:])
+	bzctrllen := offtin(header[8:])
 	bzdatalen := offtin(header[16:])
 	newsize = offtin(header[24:])
 
