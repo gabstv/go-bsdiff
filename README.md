@@ -63,3 +63,11 @@ func main(){
   fmt.Println(newpatchedf.Bytes())
 }
 ```
+
+## As a program (CLI)
+```sh
+go get -u github.com/gabstv/go-bsdiff/cmd/...
+
+bsdiff oldfile newfile patch
+bspatch oldfile newfile2 patch
+```
