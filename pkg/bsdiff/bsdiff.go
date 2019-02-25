@@ -49,6 +49,9 @@ func Stream(oldbin io.ReadSeeker, newbin io.ReadSeeker, diffbin io.Writer) error
 
 // REVIEW OK
 func diffb(oldbin, newbin []byte) ([]byte, error) {
+	bziprule := &bzip2.WriterConfig{
+		Level: bzip2.BestCompression,
+	}
 	iii := make([]int, len(oldbin)+1)
 	vvv := make([]int, len(oldbin)+1)
 	qsufsort(iii, vvv, oldbin)
@@ -86,7 +89,7 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 		return nil, err
 	}
 	// Compute the differences, writing ctrl as we go
-	pfbz2, err := bzip2.NewWriter(pf, nil)
+	pfbz2, err := bzip2.NewWriter(pf, bziprule)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +232,7 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 	offtout(ln-32, header[8:])
 
 	/* Write compressed diff data */
-	pfbz2, err = bzip2.NewWriter(pf, nil)
+	pfbz2, err = bzip2.NewWriter(pf, bziprule)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +248,7 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 	offtout(newsize-ln, header[16:])
 	/* Write compressed extra data */
 	// L 394
-	pfbz2, err = bzip2.NewWriter(pf, nil)
+	pfbz2, err = bzip2.NewWriter(pf, bziprule)
 	if err != nil {
 		return nil, err
 	}
