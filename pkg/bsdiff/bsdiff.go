@@ -33,10 +33,7 @@ import (
 	"io/ioutil"
 
 	"github.com/dsnet/compress/bzip2"
-)
-
-const (
-	buffersize = 1024 * 16
+	"github.com/gabstv/go-bsdiff/pkg/util"
 )
 
 // https://github.com/cnSchwarzer/bsdiff-win/blob/master/bsdiff-win/bsdiff.c
@@ -60,24 +57,27 @@ func Reader(oldbin io.Reader, newbin io.Reader, patchf io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return putWriter(patchf, diffbytes)
+	return util.PutWriter(patchf, diffbytes)
 }
 
 // File reads the old and new files to create a diff patch file
 func File(oldfile, newfile, patchfile string) error {
 	oldbs, err := ioutil.ReadFile(oldfile)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not read oldfile '%v': %v", oldfile, err.Error())
 	}
 	newbs, err := ioutil.ReadFile(newfile)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not read newfile '%v': %v", newfile, err.Error())
 	}
 	diffbytes, err := diffb(oldbs, newbs)
 	if err != nil {
-		return err
+		return fmt.Errorf("bsdiff: %v", err.Error())
 	}
-	return ioutil.WriteFile(patchfile, diffbytes, 0644)
+	if err := ioutil.WriteFile(patchfile, diffbytes, 0644); err != nil {
+		return fmt.Errorf("could create patchfile '%v': %v", patchfile, err.Error())
+	}
+	return nil
 }
 
 // REVIEW OK
@@ -326,7 +326,7 @@ func search(iii []int, oldbin []byte, newbin []byte, st, en int, pos *int) int {
 	}
 
 	x = st + (en-st)/2
-	cmpln := min(oldsize-iii[x], newsize)
+	cmpln := util.Min(oldsize-iii[x], newsize)
 	// xxx = oldbin[iii[x]:]
 	if bytes.Compare(oldbin[iii[x]:iii[x]+cmpln], newbin[:cmpln]) < 0 {
 		return search(iii, oldbin, newbin, x, en, pos)
@@ -529,58 +529,4 @@ func split(iii, vvv []int, start, ln, h int) {
 	if start+ln > kk {
 		split(iii, vvv, kk, start+ln-kk, h)
 	}
-}
-
-func putWriter(target io.Writer, b []byte) error {
-	lb := len(b)
-	if lb < buffersize {
-		n, err := target.Write(b)
-		if err != nil {
-			return err
-		}
-		if lb != n {
-			return fmt.Errorf("%v of %v bytes written", n, lb)
-		}
-		return nil
-	}
-	offs := 0
-
-	for offs < lb {
-		n := min(buffersize, lb-offs)
-		n2, err := target.Write(b[offs:n])
-		if err != nil {
-			return err
-		}
-		if n2 != n {
-			return fmt.Errorf("%v of %v bytes written", offs+n2, lb)
-		}
-		offs += n
-	}
-	return nil
-}
-
-func copyReader(target []byte, rdr io.Reader) error {
-	offs := 0
-	buf := make([]byte, buffersize)
-	for {
-		nread, err := rdr.Read(buf)
-		if nread > 0 {
-			copy(target[offs:], buf[:nread])
-			offs += nread
-		}
-		if err != nil {
-			if err == io.EOF {
-				return nil
-			}
-			return err
-		}
-	}
-	return nil
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

@@ -30,13 +30,52 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 
 	"github.com/dsnet/compress/bzip2"
+	"github.com/gabstv/go-bsdiff/pkg/util"
 )
 
 // Bytes applies a patch with the oldfile to create the newfile
 func Bytes(oldfile, patch []byte) (newfile []byte, err error) {
 	return patchb(oldfile, patch)
+}
+
+// Reader applies a BSDIFF4 patch (using oldbin and patchf) to create the newbin
+func Reader(oldbin io.Reader, newbin io.Writer, patchf io.Reader) error {
+	oldbs, err := ioutil.ReadAll(oldbin)
+	if err != nil {
+		return err
+	}
+	diffbytes, err := ioutil.ReadAll(patchf)
+	if err != nil {
+		return err
+	}
+	newbs, err := patchb(oldbs, diffbytes)
+	if err != nil {
+		return err
+	}
+	return util.PutWriter(newbin, newbs)
+}
+
+// File applies a BSDIFF4 patch (using oldfile and patchfile) to create the newfile
+func File(oldfile, newfile, patchfile string) error {
+	oldbs, err := ioutil.ReadFile(oldfile)
+	if err != nil {
+		return fmt.Errorf("could not read oldfile '%v': %v", oldfile, err.Error())
+	}
+	patchbs, err := ioutil.ReadFile(newfile)
+	if err != nil {
+		return fmt.Errorf("could not read patchfile '%v': %v", patchfile, err.Error())
+	}
+	newbytes, err := patchb(oldbs, patchbs)
+	if err != nil {
+		return fmt.Errorf("bspatch: %v", err.Error())
+	}
+	if err := ioutil.WriteFile(newfile, newbytes, 0644); err != nil {
+		return fmt.Errorf("could not create newfile '%v': %v", newfile, err.Error())
+	}
+	return nil
 }
 
 func patchb(oldfile, patch []byte) ([]byte, error) {
