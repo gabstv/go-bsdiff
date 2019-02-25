@@ -1,9 +1,36 @@
+/*-
+ * Copyright 2003-2005 Colin Percival
+ * All rights reserved
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted providing that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+ * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package bsdiff
 
 import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 
 	"github.com/dsnet/compress/bzip2"
 )
@@ -19,32 +46,38 @@ func Bytes(oldbs, newbs []byte) ([]byte, error) {
 	return diffb(oldbs, newbs)
 }
 
-// Stream takes the old and new binaries and outputs a stream of the diff file
-func Stream(oldbin io.ReadSeeker, newbin io.ReadSeeker, diffbin io.Writer) error {
-	oldsize, err := oldbin.Seek(0, io.SeekEnd)
+// Reader takes the old and new binaries and outputs to a stream of the diff file
+func Reader(oldbin io.Reader, newbin io.Reader, patchf io.Writer) error {
+	oldbs, err := ioutil.ReadAll(oldbin)
 	if err != nil {
 		return err
 	}
-	pold := make([]byte, int(oldsize))               // pold = (u_char *)malloc(oldsize + 1);
-	oldbin.Seek(0, io.SeekStart)                     // fseek(fs, 0, SEEK_SET);
-	if err := copyReader(pold, oldbin); err != nil { // if (fread(pold, 1, oldsize, fs) == -1)	err(1, "Read failed :%s", argv[1]);
-		return err
-	}
-	//
-	newsize, err := newbin.Seek(0, io.SeekEnd)
+	newbs, err := ioutil.ReadAll(newbin)
 	if err != nil {
 		return err
 	}
-	pnew := make([]byte, int(newsize))
-	newbin.Seek(0, io.SeekStart)
-	if err := copyReader(pnew, newbin); err != nil {
-		return err
-	}
-	diffbytes, err := diffb(pold, pnew)
+	diffbytes, err := diffb(oldbs, newbs)
 	if err != nil {
 		return err
 	}
-	return putWriter(diffbin, diffbytes)
+	return putWriter(patchf, diffbytes)
+}
+
+// File reads the old and new files to create a diff patch file
+func File(oldfile, newfile, patchfile string) error {
+	oldbs, err := ioutil.ReadFile(oldfile)
+	if err != nil {
+		return err
+	}
+	newbs, err := ioutil.ReadFile(newfile)
+	if err != nil {
+		return err
+	}
+	diffbytes, err := diffb(oldbs, newbs)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(patchfile, diffbytes, 0644)
 }
 
 // REVIEW OK
