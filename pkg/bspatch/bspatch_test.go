@@ -2,6 +2,7 @@ package bspatch
 
 import (
 	"bytes"
+	"encoding/binary"
 	"testing"
 )
 
@@ -43,5 +44,14 @@ func TestPatch(t *testing.T) {
 	}
 	if !bytes.Equal(newfile, newfilecomp) {
 		t.Fatal("expected:", newfilecomp, "got:", newfile)
+	}
+}
+
+func TestOfftin(t *testing.T) {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, 9001)
+	n := offtin(buf)
+	if n != 9001 {
+		t.Fatal(n, "!=", 9001)
 	}
 }

@@ -249,6 +249,7 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 	}
 
 	// Compute size of compressed ctrl data
+	ln = pf.Len()
 	offtout(ln-32, header[8:])
 
 	// Write compressed diff data
@@ -331,6 +332,7 @@ func matchlen(oldbin []byte, newbin []byte) int {
 	return i
 }
 
+// offtout puts an int64 (little endian) to buf
 func offtout(x int, buf []byte) {
 	var y int
 	if x < 0 {

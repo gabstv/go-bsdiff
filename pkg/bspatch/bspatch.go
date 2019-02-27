@@ -63,7 +63,7 @@ func File(oldfile, newfile, patchfile string) error {
 	if err != nil {
 		return fmt.Errorf("could not read oldfile '%v': %v", oldfile, err.Error())
 	}
-	patchbs, err := ioutil.ReadFile(newfile)
+	patchbs, err := ioutil.ReadFile(patchfile)
 	if err != nil {
 		return fmt.Errorf("could not read patchfile '%v': %v", patchfile, err.Error())
 	}
@@ -105,11 +105,11 @@ func patchb(oldfile, patch []byte) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("corrupt patch %v", err.Error())
 		}
-		return nil, fmt.Errorf("corrupt patch")
+		return nil, fmt.Errorf("corrupt patch (n %v < 32)", n)
 	}
 	// Check for appropriate magic
 	if bytes.Compare(header[:8], []byte("BSDIFF40")) != 0 {
-		return nil, fmt.Errorf("corrupt patch (header)")
+		return nil, fmt.Errorf("corrupt patch (header BSDIFF40)")
 	}
 
 	// Read lengths from header
@@ -118,7 +118,7 @@ func patchb(oldfile, patch []byte) ([]byte, error) {
 	newsize = offtin(header[24:])
 
 	if bzctrllen < 0 || bzdatalen < 0 || newsize < 0 {
-		return nil, fmt.Errorf("corrupt patch")
+		return nil, fmt.Errorf("corrupt patch bzctrllen %v bzdatalen %v newsize %v", bzctrllen, bzdatalen, newsize)
 	}
 
 	// Close patch file and re-open it via libbzip2 at the right places
@@ -193,7 +193,7 @@ func patchb(oldfile, patch []byte) ([]byte, error) {
 
 		// Sanity-check
 		if newpos+ctrl[1] > newsize {
-			return nil, fmt.Errorf("corrupt patch")
+			return nil, fmt.Errorf("corrupt patch newpos+ctrl[1] newsize")
 		}
 
 		// Read extra string
@@ -230,6 +230,7 @@ func patchb(oldfile, patch []byte) ([]byte, error) {
 	return pnew, nil
 }
 
+// offtin reads an int64 (little endian)
 func offtin(buf []byte) int {
 
 	y := int(buf[7] & 0x7f)
