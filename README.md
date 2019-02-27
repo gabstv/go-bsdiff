@@ -3,6 +3,7 @@ Pure Go implementation of [bsdiff](http://www.daemonology.net/bsdiff/) 4.
 
 [![GoDoc](https://godoc.org/github.com/gabstv/go-bsdiff?status.svg)](https://godoc.org/github.com/gabstv/go-bsdiff)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gabstv/go-bsdiff)](https://goreportcard.com/report/github.com/gabstv/go-bsdiff)
+[![Build Status](https://travis-ci.org/gabstv/go-bsdiff.svg?branch=master)](https://travis-ci.org/gabstv/go-bsdiff)
 
 bsdiff and bspatch are tools for building and applying patches to binary files. By using suffix sorting (specifically, Larsson and Sadakane's [qsufsort](http://www.larsson.dogma.net/ssrev-tr.pdf)) and taking advantage of how executable files change.
 
