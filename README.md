@@ -1,9 +1,6 @@
 # go-bsdiff
 Pure Go implementation of [bsdiff](http://www.daemonology.net/bsdiff/) 4.
 
-WORK IN PROGRESS!
-https://github.com/cnSchwarzer/bsdiff-win/blob/master/bsdiff-win/bsdiff.c
-
 [![GoDoc](https://godoc.org/github.com/gabstv/go-bsdiff?status.svg)](https://godoc.org/github.com/gabstv/go-bsdiff)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gabstv/go-bsdiff)](https://goreportcard.com/report/github.com/gabstv/go-bsdiff)
 
