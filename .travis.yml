@@ -12,7 +12,7 @@ before_install:
 script:
  - go test -v -covermode=count -coverprofile=coverage.out ./...
  - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
- - go test -race -coverprofile=coverage.txt -covermode=atomic
+ - ./go.test.sh
 
 after_success:
  - bash <(curl -s https://codecov.io/bash)
