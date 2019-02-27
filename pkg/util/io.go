@@ -27,7 +27,7 @@ func PutWriter(target io.Writer, b []byte) error {
 
 	for offs < lb {
 		n := Min(buffersize, lb-offs)
-		n2, err := target.Write(b[offs:n])
+		n2, err := target.Write(b[offs : offs+n])
 		if err != nil {
 			return err
 		}

@@ -3,7 +3,13 @@ package bsdiff
 import (
 	"bytes"
 	"encoding/binary"
+	"io/ioutil"
+	"math/rand"
+	"os"
 	"testing"
+	"time"
+
+	"github.com/gabstv/go-bsdiff/pkg/util"
 )
 
 func TestDiff(t *testing.T) {
@@ -44,4 +50,77 @@ func TestOfftout(t *testing.T) {
 	if n != 9002 {
 		t.Fatal(n, "!=", 9002)
 	}
+}
+
+func TestReader(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+	file1 := make([]byte, 512)
+	file2 := make([]byte, 1024)
+	rand.Read(file1)
+	copy(file2, file1)
+	rand.Read(file2[512:])
+	rold := bytes.NewReader(file1)
+	rnew := bytes.NewReader(file2)
+	rpatch := new(bytes.Buffer)
+	if err := Reader(rold, rnew, rpatch); err != nil {
+		t.Fatal(err)
+	}
+	b := make([]byte, 8)
+	rpatch.Read(b)
+	if !bytes.Equal(b, []byte("BSDIFF40")) {
+		t.Fail()
+	}
+}
+
+func TestFile(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+	file1 := make([]byte, 1024*32)
+	file2 := make([]byte, 1024*33)
+	rand.Read(file1)
+	copy(file2, file1)
+	rand.Read(file2[1024*32:])
+	rand.Read(file2[100:1024])
+	tf0, err := ioutil.TempFile(os.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t0n := tf0.Name()
+	tf1, err := ioutil.TempFile(os.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t1n := tf1.Name()
+	if err := util.PutWriter(tf0, file1); err != nil {
+		tf0.Close()
+		tf1.Close()
+		os.Remove(t0n)
+		os.Remove(t1n)
+		t.Fatal(err)
+	}
+	if err := util.PutWriter(tf1, file2); err != nil {
+		tf0.Close()
+		tf1.Close()
+		os.Remove(t0n)
+		os.Remove(t1n)
+		t.Fatal(err)
+	}
+	tf0.Close()
+	tf1.Close()
+	tp, err := ioutil.TempFile(os.TempDir(), "")
+	if err != nil {
+		os.Remove(t0n)
+		os.Remove(t1n)
+		t.Fatal(err)
+	}
+	tpp := tp.Name()
+	tp.Close()
+	if err := File(t0n, t1n, tpp); err != nil {
+		os.Remove(t0n)
+		os.Remove(t1n)
+		os.Remove(tpp)
+		t.Fatal(err)
+	}
+	os.Remove(t0n)
+	os.Remove(t1n)
+	os.Remove(tpp)
 }

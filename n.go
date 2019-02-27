@@ -33,3 +33,7 @@
 //    }
 //  }
 package bsdiff
+
+func v() int {
+	return 1
+}

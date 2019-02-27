@@ -22,4 +22,7 @@ func TestDiffPatch(t *testing.T) {
 	if !bytes.Equal(newbs, newbs2) {
 		t.Fatal(newbs2, "!=", newbs)
 	}
+	if v() != 1 {
+		t.Fatal("cover")
+	}
 }
