@@ -81,7 +81,7 @@ func main(){
 
 ## As a program (CLI)
 ```sh
-go get -u github.com/gabstv/go-bsdiff/cmd/...
+go get -u -v github.com/gabstv/go-bsdiff/cmd/...
 
 bsdiff oldfile newfile patch
 bspatch oldfile newfile2 patch
