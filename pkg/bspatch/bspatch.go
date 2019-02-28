@@ -118,7 +118,7 @@ func patchb(oldfile, patch []byte) ([]byte, error) {
 	newsize = offtin(header[24:])
 
 	if bzctrllen < 0 || bzdatalen < 0 || newsize < 0 {
-		return nil, fmt.Errorf("corrupt patch bzctrllen %v bzdatalen %v newsize %v", bzctrllen, bzdatalen, newsize)
+		return nil, fmt.Errorf("corrupt patch (bzctrllen %v bzdatalen %v newsize %v)", bzctrllen, bzdatalen, newsize)
 	}
 
 	// Close patch file and re-open it via libbzip2 at the right places

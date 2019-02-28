@@ -3,6 +3,7 @@ package bspatch
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -170,4 +171,55 @@ func TestFile(t *testing.T) {
 	os.Remove(t0n)
 	os.Remove(t1n)
 	os.Remove(tpp)
+}
+
+type corruptReader int
+
+func (r *corruptReader) Read(p []byte) (n int, err error) {
+	return 0, fmt.Errorf("testing")
+}
+
+func TestReaderError(t *testing.T) {
+	cr := corruptReader(0)
+	b0 := bytes.NewReader([]byte{0, 0, 0, 0, 0, 1, 2, 3, 4, 5})
+	b1 := new(bytes.Buffer)
+	if err := Reader(&cr, b1, b0); err == nil {
+		t.Fail()
+	}
+	if err := Reader(b0, b1, &cr); err == nil {
+		t.Fail()
+	}
+}
+
+func TestCorruptHeader(t *testing.T) {
+	corruptPatch := []byte{
+		0x41, 0x53, 0x44, 0x49, 0x46, 0x46, 0x34, 0x30,
+		0x29, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x2A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	}
+	_, err := Bytes(corruptPatch, corruptPatch[:30])
+	if err == nil {
+		t.Fatal("header should be corrupt")
+	}
+	if err.Error()[:13] != "corrupt patch" {
+		t.Fatal("header should be corrupt (2)")
+	}
+	_, err = Bytes(corruptPatch, corruptPatch)
+	if err == nil {
+		t.Fatal("header should be corrupt (3)")
+	}
+	if err.Error() != "corrupt patch (header BSDIFF40)" {
+		t.Fatal("header should be corrupt (4)")
+	}
+	corruptPatch[0] = 0x42
+	corruptLen := []byte{100, 0, 0, 0, 0, 0, 0, 128}
+	copy(corruptPatch[8:], corruptLen)
+	_, err = Bytes(corruptPatch, corruptPatch)
+	if err == nil {
+		t.Fatal("header should be corrupt (5)")
+	}
+	if err.Error()[:15] != "corrupt patch (" {
+		t.Fatal("header should be corrupt (6)")
+	}
 }
