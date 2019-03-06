@@ -290,11 +290,6 @@ func diffb(oldbin, newbin []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	db = nil
-	eb = nil
-	iii = nil
-	pfbz2 = nil
-
 	return pf.Bytes(), nil
 }
 
