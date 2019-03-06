@@ -173,6 +173,32 @@ func TestFile(t *testing.T) {
 	os.Remove(tpp)
 }
 
+func TestFileErr(t *testing.T) {
+	// oldfile err
+	if err := File("__nil__", "__nil__", "__nil__"); err == nil {
+		t.Fail()
+	}
+	tfl, err := ioutil.TempFile("", "")
+	if err != nil {
+		t.Fail()
+	}
+	tfl.Write([]byte{10, 11, 12, 13, 14, 15, 16, 17})
+	fn := tfl.Name()
+	tfl.Close()
+	defer func() {
+		os.Remove(fn)
+	}()
+	if err := File(fn, "__nil__", "__nil__"); err == nil {
+		t.Fail()
+	}
+	if err := File(fn, fn, "__nil__"); err == nil {
+		t.Fail()
+	}
+	if err := File(fn, fn, fn); err == nil {
+		t.Fail()
+	}
+}
+
 type corruptReader int
 
 func (r *corruptReader) Read(p []byte) (n int, err error) {
