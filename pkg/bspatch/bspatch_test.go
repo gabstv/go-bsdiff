@@ -266,7 +266,7 @@ func (r *lowcaprdr) Read(b []byte) (int, error) {
 	return len(b), nil
 }
 
-func TestBZReadAll(t *testing.T) {
+func TestZReadAll(t *testing.T) {
 	buf := []byte{
 		0x10, 0x10, 0x10, 0x10, 0x20, 0x20, 0x20, 0x20,
 		0x30, 0x30, 0x30, 0x30, 0x40, 0x40, 0x40, 0x40,
@@ -275,7 +275,7 @@ func TestBZReadAll(t *testing.T) {
 	rr := &lowcaprdr{
 		read: make([]byte, 1024),
 	}
-	nr, err := bzreadall(rr, buf, len(buf))
+	nr, err := zreadall(rr, buf, len(buf))
 	if err != nil {
 		t.Fail()
 	}
