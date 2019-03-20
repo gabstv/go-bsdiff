@@ -249,3 +249,43 @@ func TestCorruptHeader(t *testing.T) {
 		t.Fatal("header should be corrupt (6)")
 	}
 }
+
+type lowcaprdr struct {
+	read []byte
+	n    int
+}
+
+func (r *lowcaprdr) Read(b []byte) (int, error) {
+	if len(b) > 8 {
+		copy(r.read[r.n:], b[:8])
+		r.n += 8
+		return 8, nil
+	}
+	copy(r.read[r.n:], b)
+	r.n += len(b)
+	return len(b), nil
+}
+
+func TestBZReadAll(t *testing.T) {
+	buf := []byte{
+		0x10, 0x10, 0x10, 0x10, 0x20, 0x20, 0x20, 0x20,
+		0x30, 0x30, 0x30, 0x30, 0x40, 0x40, 0x40, 0x40,
+		0x43,
+	}
+	rr := &lowcaprdr{
+		read: make([]byte, 1024),
+	}
+	nr, err := bzreadall(rr, buf, len(buf))
+	if err != nil {
+		t.Fail()
+	}
+	if nr != len(buf) {
+		t.Fail()
+	}
+	if buf[16] != rr.read[16] {
+		t.Fail()
+	}
+	if buf[7] != rr.read[7] {
+		t.Fail()
+	}
+}

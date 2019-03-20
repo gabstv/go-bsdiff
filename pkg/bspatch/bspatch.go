@@ -172,7 +172,8 @@ func patchb(oldfile, patch []byte) ([]byte, error) {
 		}
 
 		// Read diff string
-		lenread, err = dpfbz2.Read(pnew[newpos : newpos+ctrl[0]])
+		// lenread, err = dpfbz2.Read(pnew[newpos : newpos+ctrl[0]])
+		lenread, err = bzreadall(dpfbz2, pnew[newpos:newpos+ctrl[0]], ctrl[0])
 		if lenread < ctrl[0] || (err != nil && err != io.EOF) {
 			e0 := ""
 			if err != nil {
@@ -197,7 +198,9 @@ func patchb(oldfile, patch []byte) ([]byte, error) {
 		}
 
 		// Read extra string
-		lenread, err = epfbz2.Read(pnew[newpos : newpos+ctrl[1]])
+		// epfbz2.Read was not reading all the requested bytes, probably an internal buffer limitation ?
+		// it was encapsulated by bzreadall to work around the issue
+		lenread, err = bzreadall(epfbz2, pnew[newpos:newpos+ctrl[1]], ctrl[1])
 		if lenread < ctrl[1] || (err != nil && err != io.EOF) {
 			e0 := ""
 			if err != nil {
@@ -253,4 +256,23 @@ func offtin(buf []byte) int {
 		y = -y
 	}
 	return y
+}
+
+func bzreadall(r io.Reader, b []byte, expected int) (int, error) {
+	var allread int
+	var offset int
+	for {
+		nread, err := r.Read(b[offset:])
+		if nread == expected {
+			return nread, err
+		}
+		if err != nil {
+			return allread + nread, err
+		}
+		allread += nread
+		if allread >= expected {
+			return allread, nil
+		}
+		offset += nread
+	}
 }
