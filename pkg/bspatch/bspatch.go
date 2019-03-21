@@ -156,13 +156,13 @@ func patchb(oldfile, patch []byte) ([]byte, error) {
 	for newpos < newsize {
 		// Read control data
 		for i = 0; i <= 2; i++ {
-			lenread, err = cpfbz2.Read(buf)
+			lenread, err = zreadall(cpfbz2, buf, 8)
 			if lenread != 8 || (err != nil && err != io.EOF) {
 				e0 := ""
 				if err != nil {
 					e0 = err.Error()
 				}
-				return nil, fmt.Errorf("corrupt patch or bzstream ended: %s", e0)
+				return nil, fmt.Errorf("corrupt patch or bzstream ended: %s (read: %v/8)", e0, lenread)
 			}
 			ctrl[i] = offtin(buf)
 		}
