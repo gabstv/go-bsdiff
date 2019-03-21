@@ -50,6 +50,11 @@ func TestPatch(t *testing.T) {
 	if !bytes.Equal(newfile, newfilecomp) {
 		t.Fatal("expected:", newfilecomp, "got:", newfile)
 	}
+	// test invalid patch
+	_, err = Bytes(oldfile, oldfile)
+	if err == nil {
+		t.Fail()
+	}
 }
 
 func TestOfftin(t *testing.T) {
